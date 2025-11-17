@@ -492,7 +492,7 @@ class PutEggplantInBasketScene(PutOnBridgeInSceneEnv):
 
 # ================================= Following are the Custom Environments =================================================
 @register_env("PutCarrotOnPlateUnseenLighting", max_episode_steps=60)
-class PutCarrotOnPlateUnseenLighting(StackGreenCubeOnYellowCubeInScene):
+class PutCarrotOnPlateUnseenLighting(PutCarrotOnPlateInScene):
     def __init__(self, **kwargs):
         self._lighting_colors = [
             [1.0, 1.0, 1.0],  # white

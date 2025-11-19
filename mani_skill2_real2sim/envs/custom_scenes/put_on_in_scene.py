@@ -1421,3 +1421,189 @@ class PutStaplerOnPaperInScene(PutOnBridgeInSceneEnv, CustomBridgeObjectsInScene
 
     def get_language_instruction(self, **kwargs):
         return "put stapler on paper pile"
+
+@register_env("PutDifferentCubeOnTableClothInScene", max_episode_steps=120)
+class PutDifferentCubeOnTableClothInScene(PutOnBridgeInSceneEnv):
+    def __init__(self, **kwargs):
+        source_obj_name = "yellow_cube_3cm"
+        target_obj_name = "table_cloth_generated_shorter"
+
+        xy_center = np.array([-0.16, 0.00])
+        half_edge_length_x = 0.075
+        half_edge_length_y = 0.075
+        grid_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]]) * 2 - 1
+        grid_pos = (
+            grid_pos * np.array([half_edge_length_x, half_edge_length_y])[None]
+            + xy_center[None]
+        )
+
+        self.distractors = [
+            ("green_cube_3cm",),
+        ]
+        self._distractor_ids = list(range(1))
+        xy_configs = list(permutations(grid_pos, len(self._distractor_ids) + 2))
+
+        quat_configs = [
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0]]),
+            np.array([euler2quat(0, 0, np.pi / 2), [1, 0, 0, 0]]),
+        ]
+        self.distractor_init_quat_dict = { # distractor has forced quaternions
+            "green_cube_3cm": np.array([1, 0, 0, 0])
+        }
+
+        super().__init__(
+            source_obj_name=source_obj_name,
+            target_obj_name=target_obj_name,
+            xy_configs=xy_configs,
+            quat_configs=quat_configs,
+            **kwargs,
+        )
+
+    def reset(self, seed=None, options=None):
+        if options is None:
+            options = dict()
+        options = options.copy()
+
+        self.set_episode_rng(seed)
+
+        obj_init_options = options.get("obj_init_options", {})
+        obj_init_options = obj_init_options.copy()
+        
+        # source and target object configs
+        episode_id = obj_init_options.get(
+            "episode_id",
+            self._episode_rng.randint(len(self._xy_configs) * len(self._quat_configs)),
+        )
+        xy_config = self._xy_configs[
+            (episode_id % (len(self._xy_configs) * len(self._quat_configs)))
+            // len(self._quat_configs)
+        ]
+        quat_config = self._quat_configs[episode_id % len(self._quat_configs)]
+        
+        # distractor configs
+        _num_episodes = (
+            len(self.distractors)
+            * len(self._distractor_ids)
+            * len(self._xy_configs)
+        )
+        episode_id = obj_init_options.get(
+            "episode_id", self._episode_rng.randint(_num_episodes)
+        )
+        episode_id = episode_id % _num_episodes
+        distractor_list = self.distractors[
+            episode_id // (len(self._distractor_ids) * len(self._xy_configs))
+        ]
+        quat_config_distractor = [
+            self.distractor_init_quat_dict[model_id] for model_id in distractor_list
+        ]
+
+        options["model_ids"] = [self._source_obj_name, self._target_obj_name] + list(distractor_list)
+        obj_init_options["source_obj_id"] = 0
+        obj_init_options["target_obj_id"] = 1
+        obj_init_options["init_xys"] = list(xy_config)
+        obj_init_options["init_rot_quats"] = list(quat_config) + list(quat_config_distractor)
+        options["obj_init_options"] = obj_init_options
+
+        obs, info = PutOnInSceneEnv.reset(self, seed=self._episode_seed, options=options) # Call Parent's Parent, ie. PutOnInSceneEnv
+        info.update({"episode_id": episode_id})
+        return obs, info
+    
+    def evaluate(self, success_require_src_completely_on_target=False, **kwargs):
+        # this environment allows spoons to be partially on the table cloth to be considered successful
+        return super().evaluate(success_require_src_completely_on_target, **kwargs)
+
+    def get_language_instruction(self, **kwargs):
+        return "put the yellow block on the towel"
+
+@register_env("PutDifferentCubeOnTableClothInScene-V1", max_episode_steps=120)
+class PutDifferentCubeOnTableClothInScene_V1(PutOnBridgeInSceneEnv):
+    def __init__(self, **kwargs):
+        source_obj_name = "green_cube_3cm"
+        target_obj_name = "table_cloth_generated_shorter"
+
+        xy_center = np.array([-0.16, 0.00])
+        half_edge_length_x = 0.075
+        half_edge_length_y = 0.075
+        grid_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]]) * 2 - 1
+        grid_pos = (
+            grid_pos * np.array([half_edge_length_x, half_edge_length_y])[None]
+            + xy_center[None]
+        )
+
+        self.distractors = [
+            ("yellow_cube_3cm",),
+        ]
+        self._distractor_ids = list(range(1))
+        xy_configs = list(permutations(grid_pos, len(self._distractor_ids) + 2))
+
+        quat_configs = [
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0]]),
+            np.array([euler2quat(0, 0, np.pi / 2), [1, 0, 0, 0]]),
+        ]
+        self.distractor_init_quat_dict = { # distractor has forced quaternions
+            "yellow_cube_3cm": np.array([1, 0, 0, 0])
+        }
+
+        super().__init__(
+            source_obj_name=source_obj_name,
+            target_obj_name=target_obj_name,
+            xy_configs=xy_configs,
+            quat_configs=quat_configs,
+            **kwargs,
+        )
+
+    def reset(self, seed=None, options=None):
+        if options is None:
+            options = dict()
+        options = options.copy()
+
+        self.set_episode_rng(seed)
+
+        obj_init_options = options.get("obj_init_options", {})
+        obj_init_options = obj_init_options.copy()
+        
+        # source and target object configs
+        episode_id = obj_init_options.get(
+            "episode_id",
+            self._episode_rng.randint(len(self._xy_configs) * len(self._quat_configs)),
+        )
+        xy_config = self._xy_configs[
+            (episode_id % (len(self._xy_configs) * len(self._quat_configs)))
+            // len(self._quat_configs)
+        ]
+        quat_config = self._quat_configs[episode_id % len(self._quat_configs)]
+        
+        # distractor configs
+        _num_episodes = (
+            len(self.distractors)
+            * len(self._distractor_ids)
+            * len(self._xy_configs)
+        )
+        episode_id = obj_init_options.get(
+            "episode_id", self._episode_rng.randint(_num_episodes)
+        )
+        episode_id = episode_id % _num_episodes
+        distractor_list = self.distractors[
+            episode_id // (len(self._distractor_ids) * len(self._xy_configs))
+        ]
+        quat_config_distractor = [
+            self.distractor_init_quat_dict[model_id] for model_id in distractor_list
+        ]
+
+        options["model_ids"] = [self._source_obj_name, self._target_obj_name] + list(distractor_list)
+        obj_init_options["source_obj_id"] = 0
+        obj_init_options["target_obj_id"] = 1
+        obj_init_options["init_xys"] = list(xy_config)
+        obj_init_options["init_rot_quats"] = list(quat_config) + list(quat_config_distractor)
+        options["obj_init_options"] = obj_init_options
+
+        obs, info = PutOnInSceneEnv.reset(self, seed=self._episode_seed, options=options) # Call Parent's Parent, ie. PutOnInSceneEnv
+        info.update({"episode_id": episode_id})
+        return obs, info
+    
+    def evaluate(self, success_require_src_completely_on_target=False, **kwargs):
+        # this environment allows spoons to be partially on the table cloth to be considered successful
+        return super().evaluate(success_require_src_completely_on_target, **kwargs)
+
+    def get_language_instruction(self, **kwargs):
+        return "put the green block on the towel"
